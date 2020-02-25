@@ -2247,7 +2247,11 @@ function _p9k_vcs_render() {
     "$VCS_STATUS_COMMITS_BEHIND"
     "$VCS_STATUS_STASHES"
     "$VCS_STATUS_TAG"
+    "$_P9K_UNTRACKED_NUM"
+    "$_P9K_UNSTAGED_NUM"
+    "$_P9K_STAGED_NUM"
   )
+
   if [[ $POWERLEVEL9K_SHOW_CHANGESET == true || -z $VCS_STATUS_LOCAL_BRANCH ]]; then
     cache_key+=$VCS_STATUS_COMMIT
   fi
@@ -2277,8 +2281,13 @@ function _p9k_vcs_render() {
     : ${state:=CLEAN}
 
     function _$0_fmt() {
+      if [[ -z $3 || $3 == 0 ]]; then
+        local num=""
+      else
+        local num=" $3"
+      fi
       _p9k_vcs_style $state $1
-      content+="$_P9K_RETVAL$2"
+      content+="$_P9K_RETVAL$2$num"
     }
 
     local ws
@@ -2312,17 +2321,17 @@ function _p9k_vcs_render() {
         if [[ $VCS_STATUS_HAS_STAGED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_STAGED_ICON
           (( ${POWERLEVEL9K_VCS_MAX_NUM_STAGED:-$POWERLEVEL9K_VCS_STAGED_MAX_NUM} != 1 )) && _P9K_RETVAL+=$VCS_STATUS_NUM_STAGED
-          _$0_fmt STAGED " $_P9K_RETVAL"
+          _$0_fmt STAGED " $_P9K_RETVAL" $_P9K_STAGED_NUM
         fi
         if [[ $VCS_STATUS_HAS_UNSTAGED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_UNSTAGED_ICON
           (( ${POWERLEVEL9K_VCS_MAX_NUM_UNSTAGED:-$POWERLEVEL9K_VCS_UNSTAGED_MAX_NUM} != 1 )) && _P9K_RETVAL+=$VCS_STATUS_NUM_UNSTAGED
-          _$0_fmt UNSTAGED " $_P9K_RETVAL"
+          _$0_fmt UNSTAGED " $_P9K_RETVAL" $_P9K_UNSTAGED_NUM
         fi
         if [[ $VCS_STATUS_HAS_UNTRACKED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_UNTRACKED_ICON
           (( ${POWERLEVEL9K_VCS_MAX_NUM_UNTRACKED:-$POWERLEVEL9K_VCS_UNTRACKED_MAX_NUM} != 1 )) && _P9K_RETVAL+=$VCS_STATUS_NUM_UNTRACKED
-          _$0_fmt UNTRACKED " $_P9K_RETVAL"
+          _$0_fmt UNTRACKED " $_P9K_RETVAL" $_P9K_UNTRACKED_NUM
         fi
       fi
       if [[ $VCS_STATUS_COMMITS_BEHIND -gt 0 ]]; then
@@ -2430,6 +2439,12 @@ function _p9k_vcs_gitstatus() {
 # Segment to show VCS information
 
 prompt_vcs() {
+  _PGK_UNCOMMITED_FILES=$(command git status -s 2> /dev/null)
+  _P9K_UNCOMMITED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^")
+  _P9K_UNTRACKED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^?")
+  _P9K_UNSTAGED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^ M\|^ R\|^ C\|^ D\|^ A")
+  _P9K_STAGED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^M\|^R\|^C\|^D\|^A")
+
   local -a backends=($POWERLEVEL9K_VCS_BACKENDS)
   if (( ${backends[(I)git]} )) && _p9k_vcs_gitstatus; then
     _p9k_vcs_render $1 $2 && return
