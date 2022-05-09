@@ -3918,8 +3918,12 @@ function _p9k_vcs_render() {
     "$VCS_STATUS_STASHES"
     "$VCS_STATUS_TAG"
     "$VCS_STATUS_NUM_UNSTAGED_DELETED"
+    "$_P9K_UNTRACKED_NUM"
+    "$_P9K_UNSTAGED_NUM"
+    "$_P9K_STAGED_NUM"
   )
-  if [[ $_POWERLEVEL9K_SHOW_CHANGESET == 1 || -z $VCS_STATUS_LOCAL_BRANCH ]]; then
+
+  if [[ $POWERLEVEL9K_SHOW_CHANGESET == true || -z $VCS_STATUS_LOCAL_BRANCH ]]; then
     cache_key+=$VCS_STATUS_COMMIT
   fi
 
@@ -3945,8 +3949,13 @@ function _p9k_vcs_render() {
     : ${state:=CLEAN}
 
     function _$0_fmt() {
+      if [[ -z $3 || $3 == 0 ]]; then
+        local num=""
+      else
+        local num=" $3"
+      fi
       _p9k_vcs_style $state $1
-      content+="$_p9k__ret$2"
+      content+="$_p9k__ret$2$num"
     }
 
     local ws
@@ -3995,18 +4004,18 @@ function _p9k_vcs_render() {
         _$0_fmt DIRTY "$_p9k__ret"
         if [[ $VCS_STATUS_HAS_STAGED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_STAGED_ICON
-          (( _POWERLEVEL9K_VCS_STAGED_MAX_NUM != 1 )) && _p9k__ret+=$VCS_STATUS_NUM_STAGED
-          _$0_fmt STAGED " $_p9k__ret"
+          (( -z ${_POWERLEVEL9K_VCS_MAX_NUM_STAGED:-$POWERLEVEL9K_VCS_STAGED_MAX_NUM})) && _p9k__ret+=$VCS_STATUS_NUM_STAGED
+          _$0_fmt STAGED " $_p9k__ret$_P9K_STAGED_NUM"
         fi
         if [[ $VCS_STATUS_HAS_UNSTAGED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_UNSTAGED_ICON
-          (( _POWERLEVEL9K_VCS_UNSTAGED_MAX_NUM != 1 )) && _p9k__ret+=$VCS_STATUS_NUM_UNSTAGED
-          _$0_fmt UNSTAGED " $_p9k__ret"
+          (( -z ${_POWERLEVEL9K_VCS_MAX_NUM_UNSTAGED:-$POWERLEVEL9K_VCS_UNSTAGED_MAX_NUM} )) && _p9k__ret+=$VCS_STATUS_NUM_UNSTAGED
+          _$0_fmt UNSTAGED " $_p9k__ret$_P9K_UNSTAGED_NUM"
         fi
         if [[ $VCS_STATUS_HAS_UNTRACKED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_UNTRACKED_ICON
-          (( _POWERLEVEL9K_VCS_UNTRACKED_MAX_NUM != 1 )) && _p9k__ret+=$VCS_STATUS_NUM_UNTRACKED
-          _$0_fmt UNTRACKED " $_p9k__ret"
+          (( -z ${_POWERLEVEL9K_VCS_MAX_NUM_UNTRACKED:-$POWERLEVEL9K_VCS_UNTRACKED_MAX_NUM} )) && _p9k__ret+=$VCS_STATUS_NUM_UNTRACKED
+          _$0_fmt UNTRACKED " $_p9k__ret$_P9K_UNTRACKED_NUM"
         fi
       fi
       if [[ $VCS_STATUS_COMMITS_BEHIND -gt 0 ]]; then
@@ -4150,6 +4159,12 @@ function _p9k_vcs_gitstatus() {
 # Segment to show VCS information
 
 prompt_vcs() {
+  _PGK_UNCOMMITED_FILES=$(command git status -s 2> /dev/null)
+  _P9K_UNCOMMITED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^")
+  _P9K_UNTRACKED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^?")
+  _P9K_UNSTAGED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^ M\|^ R\|^ C\|^ D\|^ A")
+  _P9K_STAGED_NUM=$(echo $_PGK_UNCOMMITED_FILES | grep -c "^M\|^R\|^C\|^D\|^A")
+
   if (( _p9k_vcs_index && $+GITSTATUS_DAEMON_PID_POWERLEVEL9K )); then
     _p9k__prompt+='${(e)_p9k__vcs}'
     return
@@ -4157,7 +4172,7 @@ prompt_vcs() {
 
   local -a backends=($_POWERLEVEL9K_VCS_BACKENDS)
   if (( ${backends[(I)git]} && $+GITSTATUS_DAEMON_PID_POWERLEVEL9K )) && _p9k_vcs_gitstatus; then
-    _p9k_vcs_render && return
+    _p9k_vcs_render $1 $2 && return
     backends=(${backends:#git})
   fi
   if (( $#backends )); then
@@ -5270,17 +5285,17 @@ _p9k_prompt_wifi_async() {
       # Output example (https://github.com/romkatv/powerlevel10k/pull/973#issuecomment-680251804):
       #
       # Connected to 74:83:c2:be:76:da (on wlp3s0)
-      # 	SSID: DailyGrindGuest1
-      # 	freq: 5745
-      # 	RX: 35192066 bytes (27041 packets)
-      # 	TX: 4090471 bytes (24287 packets)
-      # 	signal: -52 dBm
-      # 	rx bitrate: 243.0 MBit/s VHT-MCS 6 40MHz VHT-NSS 2
-      # 	tx bitrate: 240.0 MBit/s VHT-MCS 5 40MHz short GI VHT-NSS 2
+      #   SSID: DailyGrindGuest1
+      #   freq: 5745
+      #   RX: 35192066 bytes (27041 packets)
+      #   TX: 4090471 bytes (24287 packets)
+      #   signal: -52 dBm
+      #   rx bitrate: 243.0 MBit/s VHT-MCS 6 40MHz VHT-NSS 2
+      #   tx bitrate: 240.0 MBit/s VHT-MCS 5 40MHz short GI VHT-NSS 2
       #
-      # 	bss flags:	short-slot-time
-      # 	dtim period:	1
-      # 	beacon int:	100
+      #   bss flags:  short-slot-time
+      #   dtim period:  1
+      #   beacon int: 100
       lines=(${(f)"$(command iw dev $iface link)"}) || return 0
       local -a match mbegin mend
       for line in $lines; do
