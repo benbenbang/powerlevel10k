@@ -3948,6 +3948,14 @@ function _p9k_vcs_render() {
 
     : ${state:=CLEAN}
 
+    function fmter() {
+      if [[ -z $1 || $1 == 0 ]]; then
+        echo ""
+      else
+        echo "$1"
+      fi
+    }
+
     function _$0_fmt() {
       if [[ -z $3 || $3 == 0 ]]; then
         local num=""
@@ -4005,16 +4013,19 @@ function _p9k_vcs_render() {
         if [[ $VCS_STATUS_HAS_STAGED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_STAGED_ICON
           (( -z ${_POWERLEVEL9K_VCS_MAX_NUM_STAGED:-$POWERLEVEL9K_VCS_STAGED_MAX_NUM})) && _p9k__ret+=$VCS_STATUS_NUM_STAGED
+          _P9K_STAGED_NUM=$(fmter $_P9K_STAGED_NUM)
           _$0_fmt STAGED " $_p9k__ret$_P9K_STAGED_NUM"
         fi
         if [[ $VCS_STATUS_HAS_UNSTAGED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_UNSTAGED_ICON
           (( -z ${_POWERLEVEL9K_VCS_MAX_NUM_UNSTAGED:-$POWERLEVEL9K_VCS_UNSTAGED_MAX_NUM} )) && _p9k__ret+=$VCS_STATUS_NUM_UNSTAGED
+          _P9K_UNSTAGED_NUM=$(fmter $_P9K_UNSTAGED_NUM)
           _$0_fmt UNSTAGED " $_p9k__ret$_P9K_UNSTAGED_NUM"
         fi
         if [[ $VCS_STATUS_HAS_UNTRACKED == 1 ]]; then
           _p9k_get_icon prompt_vcs_$state VCS_UNTRACKED_ICON
           (( -z ${_POWERLEVEL9K_VCS_MAX_NUM_UNTRACKED:-$POWERLEVEL9K_VCS_UNTRACKED_MAX_NUM} )) && _p9k__ret+=$VCS_STATUS_NUM_UNTRACKED
+          _P9K_UNTRACKED_NUM=$(fmter $_P9K_UNTRACKED_NUM)
           _$0_fmt UNTRACKED " $_p9k__ret$_P9K_UNTRACKED_NUM"
         fi
       fi
